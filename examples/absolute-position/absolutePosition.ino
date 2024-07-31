@@ -4,8 +4,8 @@
 
 /*** Defines ***/
 #define DEMO_IQS7211A_ADDR        0x56
-#define DEMO_IQS7211A_POWER_PIN   2//49
-#define DEMO_IQS7211A_RDY_PIN     A3//10
+#define DEMO_IQS7211A_POWER_PIN   2
+#define DEMO_IQS7211A_RDY_PIN     A3
 
 /*** Instances ***/
 IQS7211A trackpad;
@@ -37,11 +37,11 @@ void loop()
   if(trackpad.new_data_available)
   {
     /* Print the following if the new data did not come from a force comms command */
-    if (!show_data)
+    if(!show_data)
     {
       if(printData())
       {
-          printCoordinates();
+        printCoordinates();
       }
     }
     /* Set this flag to false to indicate that the new data was already displayed/used */
@@ -69,36 +69,27 @@ bool printData(void)
 /* Function to return X and Y coordinates of finger 1 */
 void printCoordinates(void)
 {
-  //uint16_t ui16TempX = trackpad.getAbsXCoordinate(FINGER_1);
-  //uint16_t ui16TempY = trackpad.getAbsYCoordinate(FINGER_1);
-  uint16_t ui16TempX = trackpad.getRelXCoordinate();
-  uint16_t ui16TempY = trackpad.getRelYCoordinate();
+  uint16_t ui16TempX = trackpad.getAbsXCoordinate(FINGER_1);
+  uint16_t ui16TempY = trackpad.getAbsYCoordinate(FINGER_1);
   Serial.println("\nFinger 1 X:\tFinger 1 Y:");
   Serial.print(ui16TempX); // Print X coordinates
   Serial.print("\t\t");    // Spacing to match headings in Print
   Serial.print(ui16TempY); // Print Y coordinates
   Serial.print("\t\t");    // Spacing to match headings in Print
-    //Serial.println("");
-  
   running_x_output = ui16TempX;
   running_y_output = ui16TempY;
-
 }
 
 void init_iqs7211a(void)
 {
-    /* Power On IQS7211A */
   pinMode(DEMO_IQS7211A_POWER_PIN, OUTPUT);
   delay(200);
   digitalWrite(DEMO_IQS7211A_POWER_PIN, LOW);
   delay(200);
   digitalWrite(DEMO_IQS7211A_POWER_PIN, HIGH);
   Serial.println("IQS7211A MikroE Touchpad4 Selected!");
-
-  /* Initialize the IQS7211A */
   trackpad.begin(DEMO_IQS7211A_ADDR, DEMO_IQS7211A_RDY_PIN);
   Serial.println("IQS7211A Ready");
-
   delay(1);
 }
 

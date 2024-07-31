@@ -3,8 +3,8 @@
 
 /*** Defines ***/
 #define DEMO_IQS7211A_ADDR        0x56
-#define DEMO_IQS7211A_POWER_PIN   2//49
-#define DEMO_IQS7211A_RDY_PIN     A3//10
+#define DEMO_IQS7211A_POWER_PIN    2
+#define DEMO_IQS7211A_RDY_PIN     A3
 
 /*** Instances ***/
 IQS7211A trackpad;

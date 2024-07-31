@@ -1,31 +1,13 @@
-/**
-  *****************************************************************************
-  * @file     IQS7211A.cpp
-  * @brief    This file contains the constructors and methods which allow ease 
-  *           of use of an IQS7211A capacitive touch controller. The IQS7211A 
-  *           is a capacitive touch Integrated Circuit (IC) which provides 
-  *           multiple channel functionality. This class provides an easy means 
-  *           of initializing and interacting with the IQS7211A device from an 
-  *           Arduino.
-  * @author   JN. Lochner - Azoteq PTY Ltd
-  * @version  V1.1
-  * @date     2023
-  *****************************************************************************
-  * @attention  Makes use of the following standard Arduino libraries:
-  * - Arduino.h -> Included in IQS7211A.h, comes standard with Arduino
-  * - Wire.h    -> Included in IQS7211A.h, comes standard with Arduino
-  ****************************************************************************/
-
 /* Include Files */
 #include "IQS7211A.h"
 #include "IQS7211A_INIT_TOUCHPAD4.h"
 
+//Private Functions
+void iqs7211a_ready_interrupt(void);
 /* Private Global Variables */
 bool iqs7211a_deviceRDY = false;
-uint8_t iqs7211a_ready_pin;
+uint8_t _ready_pin;
 
-/* Private Functions */
-void iqs7211a_ready_interrupt(void);
 
 /*****************************************************************************/
 /*                             CONSTRUCTORS                                  */
@@ -54,7 +36,7 @@ IQS7211A::IQS7211A(){
   *         - If communication is successfully established then it is unlikely 
   *           that initialization will fail.
   */
-void IQS7211A::begin(uint8_t deviceAddressIn, uint8_t readyPinIn)
+void IQS7211A::begin(uint8_t deviceAddressIn, uint8_t readyPinIn, uint8_t rstPinIn)
 {
   /* Initialize I2C communication here, since this library can't function 
      without it. */
@@ -62,8 +44,16 @@ void IQS7211A::begin(uint8_t deviceAddressIn, uint8_t readyPinIn)
   Wire.setClock(400000);
 
   _deviceAddress = deviceAddressIn;
-  iqs7211a_ready_pin = readyPinIn;
-  attachInterrupt(digitalPinToInterrupt(iqs7211a_ready_pin), iqs7211a_ready_interrupt, CHANGE);
+  _ready_pin = readyPinIn;
+  _reset_pin = rstPinIn;
+
+  pinMode(this->_reset_pin, OUTPUT);
+  delay(200);
+  digitalWrite(this->_reset_pin, LOW);
+  delay(200);
+  digitalWrite(this->_reset_pin, HIGH);
+  pinMode(_ready_pin, INPUT);
+  attachInterrupt(digitalPinToInterrupt(_ready_pin), iqs7211a_ready_interrupt, CHANGE);
 
   /* Initialize "running" and "init" state machine variables. */
   iqs7211a_state.state      = IQS7211A_STATE_START;
@@ -104,16 +94,16 @@ bool IQS7211A::init(void)
         Serial.print(ver_maj);
         Serial.print(".");
         Serial.println(ver_min);
-        if(prod_num == IQS7211A_PRODUCT_NUM)
-        {
+        //if(prod_num == IQS7211A_PRODUCT_NUM)
+        //{
           //Serial.println("\t\tIQS7211A Release UI Confirmed!");
           iqs7211a_state.init_state = IQS7211A_INIT_READ_RESET;
-        }
-        else
-        {
-          //Serial.println("\t\tDevice is not a IQS7211A!");
-          iqs7211a_state.init_state = IQS7211A_INIT_NONE;
-        }
+        //}
+        //else
+        //{
+        //  //Serial.println("\t\tDevice is not a IQS7211A!");
+        //  iqs7211a_state.init_state = IQS7211A_INIT_NONE;
+        //}
       }
     break;
 
@@ -322,7 +312,7 @@ void IQS7211A::run(void)
  */
 void iqs7211a_ready_interrupt(void)
 {
-    if(digitalRead(iqs7211a_ready_pin))
+  if(digitalRead(_ready_pin))
   {
     iqs7211a_deviceRDY = false;
   }
@@ -390,7 +380,7 @@ void IQS7211A::queueValueUpdates(void)
   IQSMemoryMap.FINGER_1_Y[1]  = transferBytes[3];
 
   /* Read Finger 2 x and y coordinate. */
-  readRandomBytes(IQS7211A_MM_FINGER_2_X, 4, transferBytes, STOP);
+  readRandomBytes(IQS7211A_MM_FINGER_2_X, 4, transferBytes, RESTART);
 
   IQSMemoryMap.FINGER_2_X[0]  = transferBytes[0];
   IQSMemoryMap.FINGER_2_X[1]  = transferBytes[1];
@@ -398,7 +388,7 @@ void IQS7211A::queueValueUpdates(void)
   IQSMemoryMap.FINGER_2_Y[1]  = transferBytes[3];
 
   /* Read Relative x and y coordinate. */
-  readRandomBytes(IQS7211A_MM_RELATIVE_X, 4, transferBytes, RESTART);
+  readRandomBytes(IQS7211A_MM_RELATIVE_X, 4, transferBytes, STOP);
 
   /* Read Relative x and y coordinate. */
   IQSMemoryMap.REL_X[0]  = transferBytes[0];
@@ -798,31 +788,56 @@ uint16_t IQS7211A::getAbsXCoordinate(uint8_t fingerNum)
   return absXCoordReturn;
 }
 
-uint16_t IQS7211A::getRelYCoordinate()
+
+int16_t IQS7211A::getRelYCoordinate()
 {
   /* The 16-bit return value. */
-  uint16_t relYCoordReturn = 0; 
+  int16_t relYCoordReturn = 0; 
 
-  relYCoordReturn = (uint16_t)(IQSMemoryMap.REL_Y[0]);
-  relYCoordReturn |= (uint16_t)(IQSMemoryMap.REL_Y[1] << 8);
+  relYCoordReturn = (int16_t)(IQSMemoryMap.REL_Y[0]);
+  relYCoordReturn |= (int16_t)(IQSMemoryMap.REL_Y[1] << 8);
 
-  /* Return the coordinate value. Note that a value of 65535 (0xFFFF) means 
-    there is no touch. */
   return relYCoordReturn;
 }
 
-uint16_t IQS7211A::getRelXCoordinate()
+int16_t IQS7211A::getRelXCoordinate()
 {
   /* The 16-bit return value. */
-  uint16_t relXCoordReturn = 0; 
+  int16_t relXCoordReturn = 0; 
 
+  relXCoordReturn = (int16_t)(IQSMemoryMap.REL_X[0]);
+  relXCoordReturn |= (int16_t)(IQSMemoryMap.REL_X[1] << 8);
 
-    relXCoordReturn = (uint16_t)(IQSMemoryMap.REL_X[0]);
-    relXCoordReturn |= (uint16_t)(IQSMemoryMap.REL_X[1] << 8);
-
-  /*- Return the coordinate value.
-    - Note that a value of 65535 (0xFFFF) means there is no touch. */
   return relXCoordReturn;
+}
+
+void IQS7211A::Print_signed(int16_t i16Num)
+{
+	if(i16Num < (-99))
+	{
+		Serial.print(" ");
+	}
+	else if(i16Num < (-9))
+	{
+		Serial.print("  ");
+	}
+	else if(i16Num < 0)
+	{
+		Serial.print("   ");
+	}
+	else if(i16Num < 10)
+	{
+		Serial.print("    ");
+	}
+	else if(i16Num < 100)
+	{
+		Serial.print("   ");
+	}
+	else if(i16Num < 1000)
+	{
+		Serial.print("  ");
+	}
+	Serial.print(i16Num);
 }
 
 /**

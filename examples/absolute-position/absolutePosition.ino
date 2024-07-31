@@ -35,7 +35,7 @@ void loop()
     {
       if(printData())
       {
-        printCoordinates();
+        printAbsCoordinates();
       }
     }
     /* Set this flag to false to indicate that the new data was already displayed/used */

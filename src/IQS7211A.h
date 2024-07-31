@@ -1,20 +1,3 @@
-/**
-  *****************************************************************************
-  * @file    IQS7211A.h
-  * @brief   This file contains the header information for an IQS7211A Arduino
-  *          library.
-  *          The goal of the library is to provide easy functionality for
-  *          initializing and using the Azoteq IQS7211A capacitive touch device.
-  * @author  JN. Lochner
-  * @version V1.1
-  * @date    2023
-  *****************************************************************************
-  *****************************************************************************
-  * @attention  Makes use of the following standard Arduino libraries:
-  *       - Arduino.h   -> included in IQS7211A.h, comes standard with Arduino
-  *       - Wire.h      -> Included in IQS7211A.h, comes standard with Arduino
-  *
-  ****************************************************************************/
 #ifndef IQS7211A_h
 #define IQS7211A_h
 
@@ -150,8 +133,8 @@ typedef struct
 	uint8_t VERSION_DETAILS[20]; 	// 	0x00 -> 0x09
         uint8_t INFO_FLAGS[2];          // 	0x10
         uint8_t GESTURES[2]; 		// 	0x11
-        uint8_t REL_X[2];               //      0x12
-        uint8_t REL_Y[2];               //      0x13
+        int16_t REL_X[2];               //      0x12
+        int16_t REL_Y[2];               //      0x13
         uint8_t FINGER_1_X[2];          // 	0x14
         uint8_t FINGER_1_Y[2];          // 	0x15
         uint8_t FINGER_2_X[2];          // 	0x18
@@ -172,7 +155,7 @@ typedef struct {
 // Class Prototype
 class IQS7211A
 {
-public:
+   public:
         /* Public Constructors */
         IQS7211A();
 
@@ -184,7 +167,7 @@ public:
         bool new_data_available;
 
         /* Public Methods */
-        void begin(uint8_t deviceAddressIn, uint8_t readyPinIn);
+        void begin(uint8_t deviceAddressIn, uint8_t readyPinIn, uint8_t rstPinIn);
         bool init(void);
         void run(void);
         void queueValueUpdates(void);
@@ -208,8 +191,9 @@ public:
         void updateAbsCoordinates(bool stopOrRestart, uint8_t fingerNum);
         uint16_t getAbsYCoordinate(uint8_t fingerNum);
         uint16_t getAbsXCoordinate(uint8_t fingerNum);
-        uint16_t getRelYCoordinate();
-        uint16_t getRelXCoordinate();
+        void Print_signed(int16_t i16Num);
+        int16_t getRelYCoordinate();
+        int16_t getRelXCoordinate();
         bool touchpad_event_occurred(void);
         iqs7211a_gestures_e get_gesture_event(void);
         uint8_t getNumFingers(void);
@@ -226,8 +210,10 @@ public:
 private:
         /* Private Variables */
         uint8_t _deviceAddress;
+        uint8_t _reset_pin;
 
         /* Private Methods */
+        
         void readRandomBytes(uint8_t memoryAddress, uint8_t numBytes, uint8_t bytesArray[], bool stopOrRestart);
         void writeRandomBytes(uint8_t memoryAddress, uint8_t numBytes, uint8_t bytesArray[], bool stopOrRestart);
         void writeRandomBytes16(uint16_t memoryAddress, uint8_t numBytes, uint8_t bytesArray[], bool stopOrRestart);
